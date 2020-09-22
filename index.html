@@ -9,6 +9,7 @@
     <script src="https://d3js.org/d3.v4.js"></script>
     <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
     <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
+    <script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
     <title>Assignment 0</title>
 </head>
 <body>
@@ -23,6 +24,7 @@
 
     <div id="mainContainer" class="container">
         <h1>Successful Visualization</h1>
+        <h4>Washington Post Covid Simulations</h4>
         <div class="row">
             <div class="col-lg">
                 <img src="simulation.png" width="100%"/>
@@ -30,30 +32,45 @@
             </div>
             <div class="col-lg">
                 <ul class="list-group content">
-                    <li>Hello, world!</li>
+                    <li>Combines computers ability to simulate, and the human ability to abstract to increase understanding.</li>
+                    <li>Makes a complex topic (Viral Spread) easy to understand, it's insights are accessable by every day people.</li>
+                    <li>Communicates how quickly Covid spreads, and demonstrates how to slow the spread.</li>
+                    <li>Gives the viewer compelling reasons and methods for being covid-safe. </li>
                 </ul>
             </div>
         </div>
         <h1>Unsuccessful Visualization</h1>
         <div class="row">
             <div class="col-lg">
-                <img src="app.jpeg" class="padding" width="100%"/>
+                <h4>Coronavirus Map</h4>
+                <img src="app.png" class="padding" width="100%"/>
                 <p>Screenshot an interactive visualization. <a href="https://coronavirus.app/map">Link</a> to the original.</p>
             </div>
             <div class="col-lg">
                 <ul class="list-group content">
+                    <li>Hard to differentiate between (compare) the size of circles on different states</li>
+                    <li>Not clear what the circles represent: active cases, new cases, total cases?</li>
+                    <li>Crowded areas, impossible to gain any insight (ex: the north-east)</li>
+                    <li>Doesn't adjust for population, making many types of insights invalid.</li>
+                    <li>All of these issues make it hard for the viewer to gain any insight, let alone make decisions based off data presented.</li>
                 </ul>
             </div>
         </div>
         <h1>Redesigned Visualization</h1>
         <div class="row">
             <div class="col-lg">
+                <h4>Percent of State Population Infected with Covid-19</h4>
                 <svg id="svg" width="500" height="350"></svg>
-                <p>Created following tutorials chapter 14 of <a href="https://learning.oreilly.com/library/view/interactive-data-visualization/9781491921296/ch14.html#geomapping_chapter">the textbook</a> and <a href="https://bl.ocks.org/wboykinm/dbbe50d1023f90d4e241712395c27fb3">online</a>.</p>
+                <p>Created following tutorials in <a href="https://learning.oreilly.com/library/view/interactive-data-visualization/9781491921296/ch14.html#geomapping_chapter">Chapter 14</a> and online: <a href="https://bl.ocks.org/wboykinm/dbbe50d1023f90d4e241712395c27fb3">Legend</a> | <a href="https://bl.ocks.org/d3noob/257c360b3650b9f0a52dd8257d7a2d73">Tooltip</a></p>
                 <p>Data Sources: <a href="https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json">US States SVG</a> | <a href="https://github.com/nytimes/covid-19-data/blob/master/live/us-states.csv">State Covid Data</a> | <a href="https://github.com/COVID19Tracking/associated-data/blob/master/us_census_data/us_census_2018_population_estimates_states.csv">State Population Data</a></p>
             </div>
             <div class="col-lg">
                 <ul class="list-group content">
+                    <li>Distinct shades of red make it easier to compare two states.</li>
+                    <li>Clearly states what data is represented</li>
+                    <li>Choosing shading over bubbles makes crowded areas easier to view.</li>
+                    <li>Adjusts for population, so comparing states yields more usable insights.</li>
+                    <li>These improvements make it easier for the user to understand what information is being communicated, compare data accross states, generate insights based on those comparisons, and make decisions based on those insights. (ex. what states to visit, comparing effects of state policies).</li>
                 </ul>
             </div>
         </div>
@@ -70,7 +87,7 @@
     <script src="js/bootstrap.min.js"></script>
     <script>
         
-        var lowColor = '#ffdddd'
+        var lowColor = '#fff0f0'
         var highColor = '#b30000'
         // The svg
         var svg = d3.select("svg"),
@@ -78,58 +95,63 @@
           height = +svg.attr("height");
         
         var projection = d3.geoAlbersUsa()
-                .translate([5*width/8, height/2])    // translate to center of screen
-                .scale([500]);          // scale things down so see entire US
+                .translate([4.5*width/8, 3.5*height/8])
+                .scale([500]);
     
-        var path = d3.geoPath()               // path generator that will convert GeoJSON to SVG paths
-            .projection(projection);  // tell path generator to use albersUsa projection   
+        var path = d3.geoPath()
+            .projection(projection);
         
-
-        d3.csv("https://raw.githubusercontent.com/nytimes/covid-19-data/master/live/us-states.csv", function(data) {
-            var minCases = 0;
-            var maxCases = 800000;
-            console.log(minCases);
-            var color = d3.scaleLinear().domain([
-                minCases,
-                maxCases
-            ]).range([lowColor,highColor]);
-
+        // Load Data
+        d3.csv("https://raw.githubusercontent.com/jbraunschweiger/VisualizationCritique/master/us-states.csv?token=AF7MUKTAU5YF55FWLH6HOF27OKHPE", function(data) {
             d3.json("https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json", function(json) {
                 for (var i = 0; i < data.length; i++) {
                     var dataState = data[i].state;
+                    var dataValue = parseFloat(data[i].percent_cases);
 
-                    //Grab data value, and convert from string to float
-                    var dataValue = parseFloat(data[i].cases);
-
-                    //Find the corresponding state inside the GeoJSON
                     for (var j = 0; j < json.features.length; j++) {
                         var jsonState = json.features[j].properties.name;
-
                         if (dataState == jsonState) {
-
-                            //Copy the data value into the JSON
                             json.features[j].properties.value = dataValue;
-
-                            //Stop looking through the JSON
                             break;
-
                         }
                     }
                 }
+
+                var minCases = 0;
+                var maxCases = 4;
+
+                var color = d3.scaleLinear().domain([
+                    minCases,
+                    maxCases
+                ]).range([lowColor,highColor]);
+
+                var div = d3.select("body").append("div")
+                    .attr("class", "tooltip")
+                    .style("opacity", 0);
+
                 svg.selectAll("path")
                     .data(json.features)
                     .enter()
                     .append("path")
                     .attr("d", path)
+                    .on("mouseover", function(d) {
+                    div.transition()
+                        .duration(200)
+                        .style("opacity", .9);
+                    div.html(d.properties.name + "<br/>" + d.properties.value.toString().substring(0,4) + "%")
+                        .style("left", (d3.event.pageX) + "px")
+                        .style("top", (d3.event.pageY - 30) + "px");
+                    })
+                    .on("mouseout", function(d) {
+                    div.transition()
+                        .duration(500)
+                        .style("opacity", 0);
+                    })
                     .style("fill", function(d) {
-                        //Get data value
                         var value = d.properties.value;
-
                         if (value) {
-                            //If value exists…
                             return color(value);
                         } else {
-                            //If value is undefined…
                             return "#ccc";
                         }
                     });
