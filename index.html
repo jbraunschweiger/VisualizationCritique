@@ -48,8 +48,9 @@
         <h1>Redesigned Visualization</h1>
         <div class="row">
             <div class="col-lg">
-                <svg id="my_dataviz" width="500" height="350"></svg>
-                <p>Screenshot an interactive visualization. <a href="https://coronavirus.app/map">Link</a> to the original.</p>
+                <svg id="svg" width="500" height="350"></svg>
+                <p>Created following tutorials chapter 14 of <a href="https://learning.oreilly.com/library/view/interactive-data-visualization/9781491921296/ch14.html#geomapping_chapter">the textbook</a> and <a href="https://bl.ocks.org/wboykinm/dbbe50d1023f90d4e241712395c27fb3">online</a>.</p>
+                <p>Data Sources: <a href="https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json">US States SVG</a> | <a href="https://github.com/nytimes/covid-19-data/blob/master/live/us-states.csv">State Covid Data</a> | <a href="https://github.com/COVID19Tracking/associated-data/blob/master/us_census_data/us_census_2018_population_estimates_states.csv">State Population Data</a></p>
             </div>
             <div class="col-lg">
                 <ul class="list-group content">
@@ -77,7 +78,7 @@
           height = +svg.attr("height");
         
         var projection = d3.geoAlbersUsa()
-                .translate([width/2, height/2])    // translate to center of screen
+                .translate([5*width/8, height/2])    // translate to center of screen
                 .scale([500]);          // scale things down so see entire US
     
         var path = d3.geoPath()               // path generator that will convert GeoJSON to SVG paths
