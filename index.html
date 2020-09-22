@@ -6,6 +6,9 @@
     <link rel="stylesheet" href="style.css" >
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+    <script src="https://d3js.org/d3.v4.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+    <script src="https://d3js.org/d3-geo-projection.v2.min.js"></script>
     <title>Assignment 0</title>
 </head>
 <body>
@@ -42,7 +45,20 @@
                 </ul>
             </div>
         </div>
+        <h1>Redesigned Visualization</h1>
+        <div class="row">
+            <div class="col-lg">
+                <svg id="my_dataviz" width="500" height="350"></svg>
+                <p>Screenshot an interactive visualization. <a href="https://coronavirus.app/map">Link</a> to the original.</p>
+            </div>
+            <div class="col-lg">
+                <ul class="list-group content">
+                </ul>
+            </div>
+        </div>
     </div>
+
+    <br>
 
     <div class="footer">
         <p>🎓 Jakob Braunschweiger</p>
@@ -51,5 +67,119 @@
     <script src="js/dom-example.js"></script>
     <script src="https://code.jquery.com/jquery-latest.min.js"></script>
     <script src="js/bootstrap.min.js"></script>
+    <script>
+        
+        var lowColor = '#ffdddd'
+        var highColor = '#b30000'
+        // The svg
+        var svg = d3.select("svg"),
+          width = +svg.attr("width"),
+          height = +svg.attr("height");
+        
+        var projection = d3.geoAlbersUsa()
+                .translate([width/2, height/2])    // translate to center of screen
+                .scale([500]);          // scale things down so see entire US
+    
+        var path = d3.geoPath()               // path generator that will convert GeoJSON to SVG paths
+            .projection(projection);  // tell path generator to use albersUsa projection   
+        
+
+        d3.csv("https://raw.githubusercontent.com/nytimes/covid-19-data/master/live/us-states.csv", function(data) {
+            var minCases = 0;
+            var maxCases = 800000;
+            console.log(minCases);
+            var color = d3.scaleLinear().domain([
+                minCases,
+                maxCases
+            ]).range([lowColor,highColor]);
+
+            d3.json("https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json", function(json) {
+                for (var i = 0; i < data.length; i++) {
+                    var dataState = data[i].state;
+
+                    //Grab data value, and convert from string to float
+                    var dataValue = parseFloat(data[i].cases);
+
+                    //Find the corresponding state inside the GeoJSON
+                    for (var j = 0; j < json.features.length; j++) {
+                        var jsonState = json.features[j].properties.name;
+
+                        if (dataState == jsonState) {
+
+                            //Copy the data value into the JSON
+                            json.features[j].properties.value = dataValue;
+
+                            //Stop looking through the JSON
+                            break;
+
+                        }
+                    }
+                }
+                svg.selectAll("path")
+                    .data(json.features)
+                    .enter()
+                    .append("path")
+                    .attr("d", path)
+                    .style("fill", function(d) {
+                        //Get data value
+                        var value = d.properties.value;
+
+                        if (value) {
+                            //If value exists…
+                            return color(value);
+                        } else {
+                            //If value is undefined…
+                            return "#ccc";
+                        }
+                    });
+
+                // Add Legend https://bl.ocks.org/wboykinm/dbbe50d1023f90d4e241712395c27fb3
+                var w = 130, h = 140;
+
+                var key = d3.select("svg")
+                    .append("svg")
+                    .attr("width", w)
+                    .attr("height", h)
+                    .attr("class", "legend");
+
+                var legend = key.append("defs")
+                    .append("svg:linearGradient")
+                    .attr("id", "gradient")
+                    .attr("x1", "100%")
+                    .attr("y1", "0%")
+                    .attr("x2", "100%")
+                    .attr("y2", "100%")
+                    .attr("spreadMethod", "pad");
+
+                legend.append("stop")
+                    .attr("offset", "0%")
+                    .attr("stop-color", highColor)
+                    .attr("stop-opacity", 1);
+                    
+                legend.append("stop")
+                    .attr("offset", "100%")
+                    .attr("stop-color", lowColor)
+                    .attr("stop-opacity", 1);
+
+                key.append("rect")
+                    .attr("width", w - 100)
+                    .attr("height", h)
+                    .style("fill", "url(#gradient)")
+                    .attr("transform", "translate(0,10)");
+
+                var y = d3.scaleLinear()
+                    .range([h, 0])
+                    .domain([minCases, maxCases]);
+
+                var yAxis = d3.axisRight(y);
+
+                key.append("g")
+                    .attr("class", "y axis")
+                    .attr("transform", "translate(41,10)")
+                    .call(yAxis)
+            });
+        });
+        
+        </script>
 </body>
 </html>
